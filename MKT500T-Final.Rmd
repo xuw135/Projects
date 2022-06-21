@@ -1,0 +1,82 @@
+---
+title: "Final "
+output: html_notebook
+---
+```{r}
+install.packages("kableExtra")
+library(tidyverse)
+library(knitr)
+#library(kableExtra)
+library(margins)
+```
+
+```{r}
+rocket <- read.csv("rocket.csv")
+#View(rocket)
+```
+
+```{r}
+ggplot(data=rocket, aes(x = tot_impr, y = converted)) + 
+  geom_point(alpha = 0.3, position = position_jitter(height = 0)) + 
+  labs(x = "Total Impressions", y = "Converted")
+
+ggplot(data=rocket, aes(x = tot_impr, y = converted)) + 
+  geom_point(alpha = 0.3, position = position_jitter(height = 0)) + 
+  labs(x = "Total Impressions", y = "Converted") +
+  geom_smooth(method = "glm", 
+    method.args = list(family = "binomial"), se = FALSE)
+
+ggplot(data=rocket, aes(x = tot_impr, y = converted)) + 
+  geom_point(alpha = 0.3, position = position_jitter(height = 0)) + 
+  labs(x = "Total Impressions", y = "converted") +
+  geom_smooth(method = "lm", se = FALSE)
+```
+```{r}
+test<- rocket %>% filter(test == 1)
+control <- rocket %>% filter(test == 0)
+```
+
+```{r}
+#logit regress using test ==1
+test_logit <- glm(converted ~ tot_impr + mode_impr_day + mode_impr_hour , family = "binomial", data=test)
+summary(test_logit)
+cbind(OR = exp(coef(test_logit)), exp(confint(test_logit)))
+
+test_predict_prob <- predict.glm(test_logit, newdata = test, type = "response")
+test <- cbind(test, predicted_prob = test_predict_prob)
+head(test)
+mean(test_predict_prob)
+```
+```{r}
+#logit regress using test ==1
+control_logit <- glm(converted ~ tot_impr + mode_impr_day + mode_impr_hour , family = "binomial", data=control)
+summary(control_logit)
+
+control_predict_prob <- predict.glm(control_logit, newdata = control, type = "response")
+control <- cbind(control, predicted_prob = control_predict_prob)
+head(control)
+mean(control_predict_prob)
+```
+```{r}
+#compare two means
+difference = mean(test_predict_prob)-mean(control_predict_prob)
+difference
+```
+```{r}
+CrossTable(rocket$test)
+```
+```{r}
+hist(rocket$tot_impr)
+range(rocket$tot_impr)
+```
+```{r}
+split(test, cut(test$tot_impr, c(0, 30, 60, 90, 120, 150, 180, 210, 240, 270), include.lowest = TRUE))
+group <- c("0-30", "31-60", "61-90", "91-120", "121-150", "151-180", "181-210", "211-240", "241-270", "270+")
+
+```
+```{r}
+write.csv(test, "~/Desktop/R/test_rocket.csv", row.names = FALSE)
+write.csv(control, "~/Desktop/R/control_rocket.csv", row.names = FALSE)
+```
+
+
